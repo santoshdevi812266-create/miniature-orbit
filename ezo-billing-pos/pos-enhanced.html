@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EZO Billing POS - Enhanced</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Tablet Optimization */
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .main-layout.two-column {
+                grid-template-columns: 45% 55%;
+            }
+        }
+
+        /* Quantity Input in HTML */
+        .quantity-input-panel {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .quantity-input-panel.active {
+            display: flex;
+        }
+
+        .quantity-input-box {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .quantity-input-box h3 {
+            color: var(--dark-color);
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .quantity-input-box p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .product-info-display {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .product-info-display p {
+            margin: 5px 0;
+            color: #333;
+        }
+
+        .product-info-label {
+            color: #999;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .product-info-value {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* Quantity Input Control */
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .qty-btn {
+            width: 50px;
+            height: 50px;
+            border: 2px solid var(--accent-color);
+            background: white;
+            color: var(--accent-color);
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .qty-btn:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .qty-display {
+            min-width: 100px;
+            text-align: center;
+            padding: 15px 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+        }
+
+        .qty-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: block;
+        }
+
+        .qty-unit {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        /* Input field for manual entry */
+        .qty-input-field {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .qty-input-field:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
+        }
+
+        /* Product Management Panel */
+        .product-mgmt-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-mgmt-panel h4 {
+            color: var(--dark-color);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 10px;
+        }
+
+        .product-form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        .product-form input, .product-form select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .product-form label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+            display: block;
+        }
+
+        .form-group-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-list-container {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .product-list-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .product-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-item-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .product-item-price {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .product-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .product-item-actions button {
+            padding: 2px 8px;
+            font-size: 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .btn-edit {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .btn-delete {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        /* Barcode Toggle */
+        .barcode-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            background: white;
+            color: #333;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        .toggle-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .toggle-btn.active:hover {
+            background: var(--primary-color);
+        }
+
+        /* Session Info */
+        .session-info {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--primary-color) 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .session-info h5 {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .session-id {
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            margin-top: 8px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Print Button */
+        .print-button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .print-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Security Camera Settings */
+        .camera-settings {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .camera-settings h4 {
+            color: var(--dark-color);
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .camera-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .camera-input input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .camera-input button {
+            padding: 8px 15px;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .camera-types {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .camera-types ul {
+            margin-top: 5px;
+            padding-left: 20px;
+        }
+
+        /* Quantity buttons quick size */
+        .qty-presets {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 15px 0;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
+        /* Modal buttons */
+        .qty-modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .qty-modal-buttons button {
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-qty-add {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-qty-add:hover {
+            background: #229954;
+        }
+
+        .btn-qty-cancel {
+            background: #ddd;
+            color: #333;
+        }
+
+        .btn-qty-cancel:hover {
+            background: #bbb;
+        }
+
+        /* Responsive for tablet */
+        @media (max-width: 1024px) {
+            .product-mgmt-panel {
+                margin-top: 10px;
+            }
+
+            .quantity-input-box {
+                width: 95%;
+                max-width: 90vw;
+            }
+
+            .qty-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 20px;
+            }
+
+            .qty-presets {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>💳 EZO Billing POS - Enhanced</h1>
+        <div class="header-info">
+            <div class="date-time" id="dateTime"></div>
+            <a href="index.html" class="btn btn-sm" style="background: var(--secondary-color); color: white; text-decoration: none;">← Back</a>
+            <a href="analytics.html" class="btn btn-sm" style="background: var(--secondary-color); color: white; text-decoration: none; margin-left: 5px;">📊 Analytics</a>
+        </div>
+    </div>
+
+    <!-- Quantity Input Modal -->
+    <div class="quantity-input-panel" id="quantityPanel">
+        <div class="quantity-input-box">
+            <h3>📦 Add to Cart</h3>
+            
+            <div class="product-info-display">
+                <p><span class="product-info-label">Product:</span><br><span class="product-info-value" id="qtyProductName">---</span></p>
+                <p><span class="product-info-label">Price:</span><br><span class="product-info-value">₹<span id="qtyProductPrice">0</span></span></p>
+                <p><span class="product-info-label">Unit:</span><br><span class="product-info-value"><span id="qtyProductUnit">pcs</span></span></p>
+            </div>
+
+            <label style="display: block; margin-bottom: 10px; color: #666; font-size: 12px; text-transform: uppercase;">Quantity / Weight</label>
+
+            <!-- Quick Presets -->
+            <div class="qty-presets">
+                <button class="preset-btn" onclick="setQuantity(0.5)">0.5 <span id="presetUnit1">kg</span></button>
+                <button class="preset-btn" onclick="setQuantity(1)">1 <span id="presetUnit2">kg</span></button>
+                <button class="preset-btn" onclick="setQuantity(2)">2 <span id="presetUnit3">kg</span></button>
+                <button class="preset-btn" onclick="setQuantity(5)">5 <span id="presetUnit4">kg</span></button>
+            </div>
+
+            <!-- Quantity Control -->
+            <div class="quantity-control">
+                <button class="qty-btn" onclick="decreaseQuantity()">−</button>
+                <div class="qty-display">
+                    <span class="qty-value" id="qtyValue">1</span>
+                    <span class="qty-unit" id="qtyUnitDisplay">pcs</span>
+                </div>
+                <button class="qty-btn" onclick="increaseQuantity()">+</button>
+            </div>
+
+            <!-- Manual Input -->
+            <input type="number" class="qty-input-field" id="qtyInput" placeholder="Or enter quantity" min="0.1" step="0.1" value="1">
+
+            <!-- Buttons -->
+            <div class="qty-modal-buttons">
+                <button class="btn-qty-add" onclick="confirmQuantity()">✓ Add to Cart</button>
+                <button class="btn-qty-cancel" onclick="closeQuantityPanel()">✕ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout two-column" style="padding: 20px;">
+        <!-- Left Panel: Camera & Products -->
+        <div class="panel">
+            <div class="panel-header">🎥 Camera & Products</div>
+            
+            <!-- Security Camera Preview -->
+            <div class="camera-preview" id="cameraContainer"></div>
+            <small style="display: block; margin-top: 5px; color: #999;">Live security camera feed</small>
+
+            <!-- Camera Settings -->
+            <div class="camera-settings">
+                <h4>📷 Camera Settings</h4>
+                <div class="camera-input">
+                    <input type="text" id="cameraUrl" placeholder="Enter camera URL (HTTP/MJPEG/HLS)" />
+                    <button onclick="updateCameraUrl()">Load</button>
+                </div>
+                <div class="camera-types">
+                    <strong>Supported formats:</strong>
+                    <ul>
+                        <li>HTTP/MJPEG: http://camera-ip/stream.jpg</li>
+                        <li>M3U8: http://camera-ip/stream.m3u8</li>
+                        <li>RTSP: rtsp://camera-ip:port/stream</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Search/Filter Products -->
+            <div class="form-group mt-20">
+                <input type="text" id="searchProduct" placeholder="Search products..." style="width: 100%; padding: 10px;">
+            </div>
+
+            <!-- Products Grid -->
+            <div class="product-grid" id="productsGrid"></div>
+
+            <!-- Session Info for Scanner Sync -->
+            <div class="session-info">
+                <h5>� Scanner Connection</h5>
+                <p style="margin: 0 0 8px 0; font-size: 11px;">Username: <strong>ajay2266</strong></p>
+                <div class="session-id" style="font-size: 14px;">Ready to receive scans from scanner phone</div>
+                <p style="margin: 8px 0 0 0; font-size: 11px;">Scanner phone must use same username to connect</p>
+            </div>
+
+            <!-- Product Management -->
+            <div class="product-mgmt-panel">
+                <h4>➕ Add New Product</h4>
+                
+                <!-- Barcode Toggle -->
+                <div class="barcode-toggle">
+                    <button type="button" class="toggle-btn active" onclick="toggleBarcodeRequired(true)" id="withBarcodeBtn">📦 With Barcode</button>
+                    <button type="button" class="toggle-btn" onclick="toggleBarcodeRequired(false)" id="withoutBarcodeBtn">🛒 Without Barcode</button>
+                </div>
+
+                <form class="product-form" onsubmit="addNewProduct(event)" id="productForm">
+                    <div class="form-group-wrapper">
+                        <label>Product Name</label>
+                        <input type="text" id="prodName" placeholder="e.g., Rice 1kg" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group-wrapper">
+                            <label for="prodBarcode">Barcode</label>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <input type="text" id="prodBarcode" placeholder="12-13 digits" required style="flex:1;">
+                                <button type="button" class="btn btn-sm" id="scanBarcodeBtn" onclick="posApp.startBarcodeCaptureOnPos()">📷 Scan</button>
+                            </div>
+                        </div>
+                        <div class="form-group-wrapper">
+                            <label>Price (₹)</label>
+                            <input type="number" id="prodPrice" placeholder="0.00" min="0" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group-wrapper">
+                            <label>Unit</label>
+                            <select id="prodUnit" required>
+                                <option value="pcs">Piece</option>
+                                <option value="kg">Kilogram</option>
+                                <option value="g">Gram</option>
+                                <option value="L">Liter</option>
+                                <option value="ml">Milliliter</option>
+                            </select>
+                            <label style="font-size:12px; margin-top:8px; display:flex; gap:8px; align-items:center;"><input type="checkbox" id="soldByWeight" onchange="posApp.toggleSoldByWeight(this.checked)"> Sold by weight</label>
+                        </div>
+                        <div class="form-group-wrapper">
+                            <label>Category</label>
+                            <input type="text" id="prodCategory" placeholder="e.g., Groceries">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-block" style="margin-top: 10px;">
+                        ➕ Add Product
+                    </button>
+                </form>
+
+                <h4 style="margin-top: 20px; margin-bottom: 10px;">📋 Products List</h4>
+                <div class="product-list-container" id="productsList"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Bill & Checkout -->
+        <div class="panel">
+            <div class="panel-header">📄 Current Bill</div>
+
+            <!-- Bill Display -->
+            <div class="bill-container">
+                <div class="bill-header">
+                    <h2>EZO BILLING</h2>
+                    <p id="billNumber">Bill #: <strong id="billId">---</strong></p>
+                    <p id="billTime" style="font-size: 10px; color: #666;">---</p>
+                </div>
+
+                <!-- Items Table -->
+                <div class="bill-items" id="billItemsList">
+                    <p style="text-align: center; color: #999;">No items added</p>
+                </div>
+
+                <!-- Summary -->
+                <div class="bill-summary">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Discount (%):</span>
+                        <span>
+                            <input type="number" id="discountPercent" value="0" min="0" max="100" style="width: 60px; padding: 3px; border: 1px solid #ddd;">%
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Total -->
+                <div class="bill-total">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                        <span>TOTAL:</span>
+                        <span>₹<span id="billTotal">0.00</span></span>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bill-footer">
+                    Shopping ke liye Dhanyavaad! 🙏
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-danger btn-block" onclick="clearBill()">
+                    🗑️ Clear Bill
+                </button>
+                <button class="btn btn-success btn-block" onclick="openPaymentModal()">
+                    💰 Payment
+                </button>
+            </div>
+
+            <!-- Print Button -->
+            <button class="print-button" style="width: 100%; margin-top: 10px; padding: 12px;" onclick="printCurrentBill()">
+                🖨️ Print Bill
+            </button>
+
+            <!-- Customer Details -->
+            <div style="margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                <h4 style="margin-bottom: 10px; color: var(--dark-color);">📋 Customer Details (Optional)</h4>
+                <div class="form-group">
+                    <label>Customer Name</label>
+                    <input type="text" id="customerName" placeholder="Enter name">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="customerPhone" placeholder="Enter phone number">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal (same as before) -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-content">
+            <div class="modal-header">💳 Select Payment Method</div>
+            <div class="modal-body">
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <p style="color: #666; font-size: 12px;">Total Amount</p>
+                    <p style="font-size: 28px; font-weight: bold; color: var(--success-color);">₹<span id="modalTotal">0.00</span></p>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                    <button class="btn btn-primary btn-block" onclick="processPayment('Cash')">💵 Cash</button>
+                    <button class="btn btn-primary btn-block" onclick="processPayment('Card')">💳 Debit/Credit Card</button>
+                    <button class="btn btn-primary btn-block" onclick="processPayment('Online')">📱 Online Payment</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="closePaymentModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header" style="text-align: center; border: none;">✅ Payment Successful</div>
+            <div class="modal-body" style="text-align: center;">
+                <div style="background: linear-gradient(135deg, var(--success-color) 0%, #27ae60 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 20px;">
+                    <h2 style="font-size: 32px; margin-bottom: 10px;">🎉 Successful!</h2>
+                    <p style="font-size: 18px; margin-bottom: 20px;">Payment Completed</p>
+                    <div id="qrCodeContainer" style="background: white; padding: 15px; border-radius: 8px;"></div>
+                </div>
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                    <p><strong>Bill Number:</strong> <span id="successBillNumber">---</span></p>
+                    <p><strong>Amount:</strong> ₹<span id="successAmount">0.00</span></p>
+                    <p><strong>Payment Method:</strong> <span id="successMethod">---</span></p>
+                    <p><strong>Time:</strong> <span id="successTime">---</span></p>
+                </div>
+                <div style="background: var(--success-color); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; font-size: 18px; font-weight: bold;">Shopping ke liye Dhanyavaad! 🙏</div>
+                <button class="btn btn-success btn-block" onclick="completePayment()">✅ Done - New Bill</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/payment.js"></script>
+    <script src="js/qr-generator.js"></script>
+    <script src="js/product-manager.js"></script>
+    <script src="js/pos-enhanced.js"></script>
+</body>
+</html>

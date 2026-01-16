@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Testing - Step by Step</title>
+    <style>
+        body { font-family: Arial; padding: 30px; max-width: 900px; margin: 0 auto; background: #f5f5f5; }
+        .card { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #3498db; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .step { background: #ecf0f1; padding: 15px; margin: 10px 0; border-radius: 4px; }
+        button { padding: 12px 20px; margin: 10px 0; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background: #2980b9; }
+        code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+        .warning { color: #e74c3c; font-weight: bold; }
+        .success { color: #27ae60; font-weight: bold; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        a { color: #3498db; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>🔧 POS & Scanner Button Testing Guide</h1>
+
+    <div class="card">
+        <h2>📋 Test Checklist</h2>
+        <p>Follow these steps to test each button. Open browser console (F12) to see debug messages.</p>
+        
+        <div class="step">
+            <h3>Step 1: Open Scanner App</h3>
+            <button onclick="window.open('http://localhost:8000/scanner-app.html', 'scanner')">Open Scanner App</button>
+            <p><small>Keep the browser console open (F12) to see debug logs</small></p>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Test "Connect" Button in Scanner</h3>
+            <ol>
+                <li>Find the blue "Connect" button in the "🔐 Login to Main POS" section at the top</li>
+                <li>The input field should say "Username: ajay2266"</li>
+                <li>Clear the input and type: <code>ajay2266</code></li>
+                <li><span class="warning">CLICK THE CONNECT BUTTON</span></li>
+                <li>Look for:
+                    <ul>
+                        <li>✅ Console message: "Connect button clicked"</li>
+                        <li>✅ Console message: "Username input: ajay2266"</li>
+                        <li>✅ Green success alert or status change (may not work if Supabase unavailable)</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Test "📷 Use Camera to Scan" Button in Scanner</h3>
+            <ol>
+                <li>Find the button labeled "📷 Use Camera to Scan" below the barcode input</li>
+                <li><span class="warning">CLICK THE CAMERA BUTTON</span></li>
+                <li>Your browser will request camera permission - <span class="success">ALLOW IT</span></li>
+                <li>Look for:
+                    <ul>
+                        <li>✅ Console message: "Toggle camera button clicked"</li>
+                        <li>✅ Console message: "Starting camera scan..."</li>
+                        <li>✅ Console message: "Camera stream obtained"</li>
+                        <li>✅ Live video feed appears</li>
+                        <li>✅ Button changes to "📷 Stop Camera"</li>
+                        <li>✅ "Stop Camera" and "Capture Frame" buttons appear</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>Step 4: Open POS App</h3>
+            <button onclick="window.open('http://localhost:8000/pos-enhanced.html', 'pos')">Open POS App</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 5: Test "📷 Scan" Button in POS</h3>
+            <ol>
+                <li>Find the "Add New Product" section at the bottom-left of the POS app</li>
+                <li>Look for the "Barcode" field with a "📷 Scan" button next to it</li>
+                <li><span class="warning">CLICK THE SCAN BUTTON</span></li>
+                <li>Browser will request camera permission - <span class="success">ALLOW IT</span></li>
+                <li>Look for:
+                    <ul>
+                        <li>✅ Console message: "Scan barcode button clicked"</li>
+                        <li>✅ Console message: "Creating video element..."</li>
+                        <li>✅ Console message: "Camera stream obtained"</li>
+                        <li>✅ Small video window appears in bottom-right corner</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🐛 Troubleshooting</h2>
+        
+        <div class="step">
+            <h3>Console Shows "Connect button clicked" but nothing else happens</h3>
+            <p><span class="warning">⚠️ This means the click handler IS working!</span></p>
+            <p>The issue is likely inside the connectWithUsername method. Check console for errors.</p>
+        </div>
+
+        <div class="step">
+            <h3>Console Shows "Requesting camera access..." but no video appears</h3>
+            <p><span class="success">✓ Camera button IS working!</span></p>
+            <p>The issue might be:</p>
+            <ul>
+                <li>Camera permission denied - check browser notification area</li>
+                <li>Another app using camera - close other camera apps</li>
+                <li>BarcodeDetector API unavailable (Firefox, Safari) - use Capture Frame button</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <h3>Nothing happens when I click a button</h3>
+            <p>Check console for JavaScript errors. The button click might not be firing at all.</p>
+            <p><span class="success">Open diagnostic page:</span></p>
+            <button onclick="window.open('http://localhost:8000/diagnostic.html', 'diag')">Run Diagnostics</button>
+        </div>
+
+        <div class="step">
+            <h3>Camera shows but no barcode detection</h3>
+            <p>This is normal! BarcodeDetector API is experimental and not available in all browsers:</p>
+            <ul>
+                <li>✅ Chrome/Edge/Brave on Android - supported</li>
+                <li>✅ Chrome/Edge on desktop - may need flag enabled</li>
+                <li>❌ Firefox - not supported yet</li>
+                <li>❌ Safari - not supported yet</li>
+            </ul>
+            <p>Use the "Capture Frame" button to manually detect barcodes.</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📊 Expected Behavior Summary</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr style="background: #f0f0f0;">
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Button</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Should</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Console Should Show</th>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 10px;">Connect (Scanner)</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">Connect to tablet</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">"Connect button clicked"</td>
+            </tr>
+            <tr style="background: #f9f9f9;">
+                <td style="border: 1px solid #ddd; padding: 10px;">📷 Camera (Scanner)</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">Open camera feed</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">"Camera stream obtained"</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 10px;">📷 Scan (POS)</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">Open camera for scanning</td>
+                <td style="border: 1px solid #ddd; padding: 10px;">"Scan barcode button clicked"</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>✅ Next Steps</h2>
+        <p>Once buttons are working and you see console logs, report what you see and we'll debug from there!</p>
+    </div>
+
+    <script>
+        // Simple logging helper
+        console.log('Test guide loaded. Open URLs above and follow steps.');
+    </script>
+</body>
+</html>
