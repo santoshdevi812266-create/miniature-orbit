@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Broadcast & Sync Test</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .test-section h2 {
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .test-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .test-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .test-input label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .test-input input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .test-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+
+        .status-box {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .status-box.success {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .status-box.error {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+
+        .status-box.warning {
+            border-left-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        .log-area {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+
+        .log-entry.info { color: #00ff00; }
+        .log-entry.success { color: #00ff00; }
+        .log-entry.error { color: #ff4444; }
+        .log-entry.warning { color: #ffff00; }
+
+        .progress {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .progress-step {
+            flex: 1;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .progress-step.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .progress-step.completed {
+            background: #48bb78;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Broadcast & Sync Test</h1>
+
+        <!-- Supabase Status -->
+        <div class="test-section">
+            <h2>1️⃣ Supabase Connection Status</h2>
+            <div id="supabaseStatus" class="status-box"></div>
+            <button class="btn-primary" onclick="testSupabaseConnection()">
+                <i class="fas fa-plug"></i> Test Supabase Connection
+            </button>
+        </div>
+
+        <!-- Scanner Setup -->
+        <div class="test-section">
+            <h2>2️⃣ Scanner App Setup</h2>
+            <div class="test-controls">
+                <div class="test-input">
+                    <label>Username (for scanner):</label>
+                    <input type="text" id="scannerUsername" value="ajay2266" placeholder="ajay2266">
+                </div>
+                <div class="test-input">
+                    <label>Test Barcode:</label>
+                    <input type="text" id="testBarcode" value="1234567890" placeholder="1234567890">
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn-info" onclick="openScannerApp()">
+                    <i class="fas fa-mobile-alt"></i> Open Scanner
+                </button>
+                <button class="btn-success" onclick="testDirectBroadcast()">
+                    <i class="fas fa-broadcast-tower"></i> Broadcast Test
+                </button>
+            </div>
+        </div>
+
+        <!-- POS Setup -->
+        <div class="test-section">
+            <h2>3️⃣ POS App Setup</h2>
+            <div class="test-controls">
+                <div class="test-input">
+                    <label>Username (for POS):</label>
+                    <input type="text" id="posUsername" value="ajay2266" placeholder="ajay2266">
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn-info" onclick="openPOSApp()">
+                    <i class="fas fa-cash-register"></i> Open POS
+                </button>
+                <button class="btn-success" onclick="testDirectListen()">
+                    <i class="fas fa-ear"></i> Listen Test
+                </button>
+            </div>
+        </div>
+
+        <!-- Manual Broadcast Test -->
+        <div class="test-section">
+            <h2>4️⃣ Manual Broadcast Test</h2>
+            <div class="test-controls">
+                <div class="test-input">
+                    <label>Event Type:</label>
+                    <select id="eventType" style="padding: 10px; border: 2px solid #ddd; border-radius: 5px;">
+                        <option value="barcode_scanned">barcode_scanned</option>
+                        <option value="open_add_product">open_add_product</option>
+                        <option value="add_product">add_product</option>
+                    </select>
+                </div>
+                <div class="test-input">
+                    <label>Channel Name:</label>
+                    <input type="text" id="channelName" value="pos-scanner-ajay2266" placeholder="pos-scanner-ajay2266">
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn-warning" onclick="sendBroadcastMessage()">
+                    <i class="fas fa-paper-plane"></i> Send Message
+                </button>
+            </div>
+        </div>
+
+        <!-- Live Logs -->
+        <div class="test-section">
+            <h2>📋 Live Console Logs</h2>
+            <button class="btn-danger" onclick="clearLogs()"><i class="fas fa-trash"></i> Clear Logs</button>
+            <div id="logArea" class="log-area"></div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="test-section">
+            <h2>📖 Testing Steps</h2>
+            <ol style="line-height: 1.8; color: #333;">
+                <li><strong>Step 1:</strong> Click "Test Supabase Connection" to verify Supabase is loaded</li>
+                <li><strong>Step 2:</strong> Open Scanner app in one window/tab</li>
+                <li><strong>Step 3:</strong> Open POS app in another window/tab</li>
+                <li><strong>Step 4:</strong> Click "Broadcast Test" on Scanner to send test message</li>
+                <li><strong>Step 5:</strong> Watch logs to see if POS receives the message</li>
+                <li><strong>Step 6:</strong> Check console in both apps for debug logs</li>
+                <li><strong>Step 7:</strong> Scan a barcode in Scanner app and verify it appears in POS</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Load Supabase library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="js/supabase-client.js"></script>
+
+    <script>
+        const logArea = document.getElementById('logArea');
+        const maxLogs = 100;
+        let logCount = 0;
+
+        function addLog(message, type = 'info') {
+            logCount++;
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logArea.appendChild(entry);
+            logArea.scrollTop = logArea.scrollHeight;
+
+            if (logCount > maxLogs) {
+                logArea.firstChild.remove();
+                logCount--;
+            }
+        }
+
+        function clearLogs() {
+            logArea.innerHTML = '';
+            logCount = 0;
+            addLog('Logs cleared', 'warning');
+        }
+
+        function testSupabaseConnection() {
+            addLog('Testing Supabase connection...', 'info');
+            
+            const statusBox = document.getElementById('supabaseStatus');
+            statusBox.className = 'status-box';
+
+            if (!window.supabase) {
+                statusBox.classList.add('error');
+                statusBox.innerHTML = '❌ Supabase library not loaded from CDN';
+                addLog('ERROR: Supabase library not found', 'error');
+                return;
+            }
+
+            addLog('✓ Supabase library loaded', 'success');
+
+            if (!supabaseReady || !supabase) {
+                statusBox.classList.add('warning');
+                statusBox.innerHTML = '⏳ Supabase client initializing...<br/>Please wait...';
+                addLog('Waiting for Supabase client initialization...', 'warning');
+                
+                // Wait and retry
+                setTimeout(() => {
+                    if (supabaseReady && supabase) {
+                        statusBox.classList.remove('warning');
+                        statusBox.classList.add('success');
+                        statusBox.innerHTML = '✅ Supabase client is ready<br/>Channel: ' + 
+                            '<code>pos-scanner-ajay2266</code>';
+                        addLog('✓ Supabase client initialized and ready', 'success');
+                    } else {
+                        statusBox.classList.add('error');
+                        statusBox.innerHTML = '❌ Failed to initialize Supabase client';
+                        addLog('ERROR: Supabase client failed to initialize', 'error');
+                    }
+                }, 1000);
+            } else {
+                statusBox.classList.add('success');
+                statusBox.innerHTML = '✅ Supabase client is ready<br/>Channel: <code>pos-scanner-ajay2266</code>';
+                addLog('✓ Supabase client ready immediately', 'success');
+            }
+        }
+
+        function openScannerApp() {
+            addLog('Opening Scanner app in new window...', 'info');
+            window.open('scanner-app.html', 'scanner', 'width=500,height=800');
+        }
+
+        function openPOSApp() {
+            addLog('Opening POS app in new window...', 'info');
+            window.open('pos-enhanced.html', 'pos', 'width=1024,height=768');
+        }
+
+        async function testDirectBroadcast() {
+            if (!supabaseReady || !supabase) {
+                addLog('ERROR: Supabase not ready', 'error');
+                return;
+            }
+
+            const username = document.getElementById('scannerUsername').value;
+            const barcode = document.getElementById('testBarcode').value;
+            const channelName = `pos-scanner-${username}`;
+
+            addLog(`Broadcasting to channel: ${channelName}`, 'info');
+
+            try {
+                const channel = supabase.channel(channelName, {
+                    config: { broadcast: { self: false } }
+                });
+
+                await channel.send({
+                    type: 'broadcast',
+                    event: 'barcode_scanned',
+                    payload: {
+                        barcode: barcode,
+                        productName: 'TEST PRODUCT',
+                        quantity: 1,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+
+                addLog('✓ Broadcast message sent successfully', 'success');
+            } catch (err) {
+                addLog(`❌ Broadcast failed: ${err.message}`, 'error');
+            }
+        }
+
+        async function testDirectListen() {
+            if (!supabaseReady || !supabase) {
+                addLog('ERROR: Supabase not ready', 'error');
+                return;
+            }
+
+            const username = document.getElementById('posUsername').value;
+            const channelName = `pos-scanner-${username}`;
+
+            addLog(`Setting up listener on channel: ${channelName}`, 'info');
+
+            try {
+                const channel = supabase.channel(channelName, {
+                    config: { broadcast: { self: false } }
+                })
+                    .on('broadcast', { event: 'barcode_scanned' }, (payload) => {
+                        addLog(`📱 Received barcode_scanned: ${JSON.stringify(payload.payload)}`, 'success');
+                    })
+                    .on('broadcast', { event: 'open_add_product' }, (payload) => {
+                        addLog(`📋 Received open_add_product: ${JSON.stringify(payload.payload)}`, 'success');
+                    })
+                    .on('broadcast', { event: 'add_product' }, (payload) => {
+                        addLog(`➕ Received add_product: ${JSON.stringify(payload.payload)}`, 'success');
+                    })
+                    .subscribe((status) => {
+                        addLog(`Channel status: ${status}`, status === 'SUBSCRIBED' ? 'success' : 'warning');
+                    });
+
+                addLog('✓ Listener setup complete. Waiting for messages...', 'success');
+            } catch (err) {
+                addLog(`❌ Listener setup failed: ${err.message}`, 'error');
+            }
+        }
+
+        async function sendBroadcastMessage() {
+            if (!supabaseReady || !supabase) {
+                addLog('ERROR: Supabase not ready', 'error');
+                return;
+            }
+
+            const channelName = document.getElementById('channelName').value;
+            const eventType = document.getElementById('eventType').value;
+
+            let payload;
+            switch(eventType) {
+                case 'barcode_scanned':
+                    payload = {
+                        barcode: document.getElementById('testBarcode').value,
+                        productName: 'Test Product',
+                        quantity: 1,
+                        timestamp: new Date().toISOString()
+                    };
+                    break;
+                case 'open_add_product':
+                    payload = {
+                        barcode: document.getElementById('testBarcode').value,
+                        timestamp: new Date().toISOString()
+                    };
+                    break;
+                case 'add_product':
+                    payload = {
+                        barcode: document.getElementById('testBarcode').value,
+                        name: 'Test Product',
+                        price: 99.99,
+                        unit: 'pcs',
+                        category: 'Test'
+                    };
+                    break;
+            }
+
+            addLog(`Sending ${eventType} to ${channelName}`, 'info');
+
+            try {
+                const channel = supabase.channel(channelName, {
+                    config: { broadcast: { self: false } }
+                });
+
+                await channel.send({
+                    type: 'broadcast',
+                    event: eventType,
+                    payload: payload
+                });
+
+                addLog(`✓ ${eventType} sent successfully`, 'success');
+            } catch (err) {
+                addLog(`❌ Send failed: ${err.message}`, 'error');
+            }
+        }
+
+        // Initial setup
+        window.addEventListener('load', () => {
+            addLog('Test page loaded', 'info');
+            addLog('Waiting for Supabase to initialize...', 'warning');
+            setTimeout(() => {
+                addLog('Supabase initialization status: ' + (supabaseReady ? 'Ready' : 'Not Ready'), 
+                    supabaseReady ? 'success' : 'warning');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

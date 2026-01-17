@@ -1,0 +1,17 @@
+{
+  "name": "ezo-billing-pos",
+  "version": "1.0.0",
+  "description": "EZO Billing - POS System with Scanner",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "python3 -m http.server 8000"
+  },
+  "keywords": ["pos", "billing", "scanner"],
+  "author": "EZO",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EZO Billing POS - Main App</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>💳 EZO Billing POS</h1>
+        <div class="header-info">
+            <div class="date-time" id="dateTime"></div>
+            <a href="index.html" class="btn btn-sm" style="background: var(--secondary-color); color: white; text-decoration: none;">← Back</a>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout two-column" style="padding: 20px;">
+        <!-- Left Panel: Camera & Products -->
+        <div class="panel">
+            <div class="panel-header">🎥 Camera & Products</div>
+            
+            <!-- Camera Preview -->
+            <div class="camera-preview" id="cameraContainer"></div>
+            <small style="display: block; margin-top: 5px; color: #999;">Security camera preview</small>
+
+            <!-- Search/Filter Products -->
+            <div class="form-group mt-20">
+                <input type="text" id="searchProduct" placeholder="Search products..." style="width: 100%; padding: 10px;">
+            </div>
+
+            <!-- Products Grid -->
+            <div class="product-grid" id="productsGrid"></div>
+        </div>
+
+        <!-- Right Panel: Bill & Checkout -->
+        <div class="panel">
+            <div class="panel-header">📄 Current Bill</div>
+
+            <!-- Bill Display -->
+            <div class="bill-container">
+                <div class="bill-header">
+                    <h2>EZO BILLING</h2>
+                    <p id="billNumber">Bill #: <strong id="billId">---</strong></p>
+                    <p id="billTime" style="font-size: 10px; color: #666;">---</p>
+                </div>
+
+                <!-- Items Table -->
+                <div class="bill-items" id="billItemsList">
+                    <p style="text-align: center; color: #999;">No items added</p>
+                </div>
+
+                <!-- Summary -->
+                <div class="bill-summary">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Discount (%):</span>
+                        <span>
+                            <input type="number" id="discountPercent" value="0" min="0" max="100" style="width: 60px; padding: 3px; border: 1px solid #ddd;">%
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Total -->
+                <div class="bill-total">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                        <span>TOTAL:</span>
+                        <span>₹<span id="billTotal">0.00</span></span>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bill-footer">
+                    Shopping ke liye Dhanyavaad! 🙏
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-danger btn-block" onclick="clearBill()">
+                    🗑️ Clear Bill
+                </button>
+                <button class="btn btn-success btn-block" onclick="openPaymentModal()">
+                    💰 Proceed to Payment
+                </button>
+            </div>
+
+            <!-- Customer Details -->
+            <div style="margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                <h4 style="margin-bottom: 10px; color: var(--dark-color);">📋 Customer Details (Optional)</h4>
+                <div class="form-group">
+                    <label>Customer Name</label>
+                    <input type="text" id="customerName" placeholder="Enter name">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="customerPhone" placeholder="Enter phone number">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                💳 Select Payment Method
+            </div>
+            <div class="modal-body">
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <p style="color: #666; font-size: 12px;">Total Amount</p>
+                    <p style="font-size: 28px; font-weight: bold; color: var(--success-color);">₹<span id="modalTotal">0.00</span></p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                    <button class="btn btn-primary btn-block" onclick="processPayment('Cash')">
+                        💵 Cash
+                    </button>
+                    <button class="btn btn-primary btn-block" onclick="processPayment('Card')">
+                        💳 Debit/Credit Card
+                    </button>
+                    <button class="btn btn-primary btn-block" onclick="processPayment('Online')">
+                        📱 Online Payment
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="closePaymentModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header" style="text-align: center; border: none;">
+                ✅ Payment Successful
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div style="background: linear-gradient(135deg, var(--success-color) 0%, #27ae60 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 20px;">
+                    <h2 style="font-size: 32px; margin-bottom: 10px;">🎉 Successful!</h2>
+                    <p style="font-size: 18px; margin-bottom: 20px;">Payment Completed</p>
+                    <div id="qrCodeContainer" style="background: white; padding: 15px; border-radius: 8px;"></div>
+                </div>
+
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                    <p><strong>Bill Number:</strong> <span id="successBillNumber">---</span></p>
+                    <p><strong>Amount:</strong> ₹<span id="successAmount">0.00</span></p>
+                    <p><strong>Payment Method:</strong> <span id="successMethod">---</span></p>
+                    <p><strong>Time:</strong> <span id="successTime">---</span></p>
+                </div>
+
+                <div style="background: var(--success-color); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; font-size: 18px; font-weight: bold;">
+                    Shopping ke liye Dhanyavaad! 🙏
+                </div>
+
+                <button class="btn btn-success btn-block" onclick="completePayment()">
+                    ✅ Done - New Bill
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/payment.js"></script>
+    <script src="js/qr-generator.js"></script>
+    <script src="js/camera.js"></script>
+    <script src="js/pos-app.js"></script>
+</body>
+</html>

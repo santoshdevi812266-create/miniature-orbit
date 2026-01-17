@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Button Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .test-section { border: 1px solid #ddd; padding: 15px; margin: 20px 0; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        .success { background: #27ae60; color: white; }
+        .info { background: #3498db; color: white; }
+        #log { background: #f9f9f9; border: 1px solid #ddd; padding: 10px; height: 200px; overflow-y: auto; font-family: monospace; font-size: 11px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>POS & Scanner Button Test</h1>
+    
+    <div class="test-section">
+        <h3>🔐 Scanner Connect Test</h3>
+        <p>Opens: <a href="http://localhost:8000/scanner-app.html" target="_blank">Scanner App</a></p>
+        <p>Test the Connect button with username: <strong>ajay2266</strong></p>
+        <button class="info" onclick="testScannerConnect()">Test Scanner Connect</button>
+    </div>
+
+    <div class="test-section">
+        <h3>📷 Scanner Camera Test</h3>
+        <p>Opens: <a href="http://localhost:8000/scanner-app.html" target="_blank">Scanner App</a></p>
+        <p>Test the "Use Camera to Scan" button</p>
+        <button class="info" onclick="testScannerCamera()">Test Scanner Camera</button>
+    </div>
+
+    <div class="test-section">
+        <h3>🔐 POS Barcode Scan Button Test</h3>
+        <p>Opens: <a href="http://localhost:8000/pos-enhanced.html" target="_blank">POS App</a></p>
+        <p>Test the 📷 Scan button next to barcode field</p>
+        <button class="info" onclick="testPosScan()">Test POS Scan</button>
+    </div>
+
+    <div class="test-section">
+        <h3>JavaScript Console Test</h3>
+        <p>Check browser console (F12) for debug messages when buttons are clicked</p>
+        <button class="success" onclick="logTest()">Log Test Message</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        function log(msg) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${timestamp}] ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function testScannerConnect() {
+            log('✓ Scanner Connect test - Go to scanner-app.html and click Connect button');
+            log('  → Enter username: ajay2266');
+            log('  → Should show "✅ Connected as ajay2266"');
+            window.open('http://localhost:8000/scanner-app.html', 'scanner');
+        }
+
+        function testScannerCamera() {
+            log('✓ Scanner Camera test - Go to scanner-app.html and click "📷 Use Camera to Scan"');
+            log('  → Should open camera stream');
+            log('  → Should show Stop Camera and Capture Frame buttons');
+            window.open('http://localhost:8000/scanner-app.html', 'scanner');
+        }
+
+        function testPosScan() {
+            log('✓ POS Scan test - Go to pos-enhanced.html');
+            log('  → Scroll to "Add New Product" section');
+            log('  → Click 📷 Scan button next to Barcode field');
+            log('  → Should open camera in bottom-right corner');
+            window.open('http://localhost:8000/pos-enhanced.html', 'pos');
+        }
+
+        function logTest() {
+            log('✓ Test log entry at ' + new Date().toLocaleTimeString());
+        }
+
+        // Initial setup
+        log('Test panel loaded. Check console (F12) for browser messages.');
+        log('Click buttons below to test functionality.');
+    </script>
+</body>
+</html>

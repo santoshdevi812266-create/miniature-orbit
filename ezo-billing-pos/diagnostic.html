@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Diagnostic Check</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; background: #f5f5f5; }
+        .section { background: white; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 4px solid #3498db; }
+        .ok { color: #27ae60; font-weight: bold; }
+        .error { color: #e74c3c; font-weight: bold; }
+        .warning { color: #f39c12; font-weight: bold; }
+        code { background: #f9f9f9; padding: 2px 6px; border-radius: 3px; }
+        pre { background: #f9f9f9; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 POS System Diagnostic Check</h1>
+    
+    <div class="section">
+        <h2>1. Supabase Client Check</h2>
+        <div id="supabaseCheck"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. Scanner App Check</h2>
+        <div id="scannerCheck"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. POS App Check</h2>
+        <div id="posCheck"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. Browser APIs Check</h2>
+        <div id="apisCheck"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. Direct Test</h2>
+        <button onclick="testDirectCall()" style="padding: 10px 20px; margin: 5px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Test Scanner Connect Direct Call</button>
+        <button onclick="testDirectCameraCall()" style="padding: 10px 20px; margin: 5px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Test Camera Direct Call</button>
+        <div id="directTest" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="section">
+        <h2>6. Browser Console</h2>
+        <p>Open browser console (F12) and check for errors. Copy paste any errors here:</p>
+        <textarea style="width: 100%; height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Console errors will appear here"></textarea>
+    </div>
+
+    <script>
+        // Check 1: Supabase
+        function checkSupabase() {
+            const el = document.getElementById('supabaseCheck');
+            try {
+                if (window.supabase) {
+                    el.innerHTML = '<span class="ok">✓ Supabase JS library loaded</span>';
+                    if (window.supabase.createClient) {
+                        el.innerHTML += '<br><span class="ok">✓ createClient method available</span>';
+                    } else {
+                        el.innerHTML += '<br><span class="error">✗ createClient method NOT found</span>';
+                    }
+                } else {
+                    el.innerHTML = '<span class="error">✗ Supabase JS library NOT loaded (window.supabase undefined)</span><br>';
+                    el.innerHTML += '<small>Check: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js</small>';
+                }
+            } catch (e) {
+                el.innerHTML = '<span class="error">✗ Error checking Supabase: ' + e.message + '</span>';
+            }
+        }
+
+        // Check 2: Scanner App
+        function checkScannerApp() {
+            const el = document.getElementById('scannerCheck');
+            try {
+                // Embed supabase-client.js logic to test
+                if (!window.supabase) {
+                    el.innerHTML = '<span class="error">✗ Cannot check - Supabase not loaded</span>';
+                    return;
+                }
+
+                // Try to get scanner from localStorage or check if it would load
+                el.innerHTML = '<span class="ok">✓ Loading scanner-app.html to check...</span><br>';
+                
+                // Check methods that should exist
+                const methods = [
+                    'connectWithUsername',
+                    'toggleCameraScan',
+                    'startCameraScan',
+                    'stopCameraScan',
+                    'handleBarcodeScan'
+                ];
+                
+                el.innerHTML += '<strong>Required methods:</strong><br>';
+                methods.forEach(m => {
+                    el.innerHTML += `<small>- ${m} (will be created on page load)</small><br>`;
+                });
+            } catch (e) {
+                el.innerHTML = '<span class="error">✗ Error: ' + e.message + '</span>';
+            }
+        }
+
+        // Check 3: POS App
+        function checkPosApp() {
+            const el = document.getElementById('posCheck');
+            try {
+                if (!window.supabase) {
+                    el.innerHTML = '<span class="error">✗ Cannot check - Supabase not loaded</span>';
+                    return;
+                }
+
+                el.innerHTML = '<span class="ok">✓ Loading pos-enhanced.html to check...</span><br>';
+                
+                const methods = [
+                    'startBarcodeCaptureOnPos',
+                    'toggleBarcodeRequired',
+                    'displaySessionInfo',
+                    'startListeningForBarcodeScans'
+                ];
+                
+                el.innerHTML += '<strong>Required methods:</strong><br>';
+                methods.forEach(m => {
+                    el.innerHTML += `<small>- ${m} (will be created on page load)</small><br>`;
+                });
+            } catch (e) {
+                el.innerHTML = '<span class="error">✗ Error: ' + e.message + '</span>';
+            }
+        }
+
+        // Check 4: Browser APIs
+        function checkApis() {
+            const el = document.getElementById('apisCheck');
+            let html = '';
+
+            // Camera
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                html += '<span class="ok">✓ Camera API (getUserMedia) available</span><br>';
+            } else {
+                html += '<span class="error">✗ Camera API NOT available</span><br>';
+            }
+
+            // BarcodeDetector
+            if ('BarcodeDetector' in window) {
+                html += '<span class="ok">✓ BarcodeDetector API available</span><br>';
+            } else {
+                html += '<span class="warning">⚠ BarcodeDetector API not available (camera scanning fallback will be used)</span><br>';
+            }
+
+            // Supabase
+            if (window.supabase) {
+                html += '<span class="ok">✓ Supabase loaded</span><br>';
+            } else {
+                html += '<span class="error">✗ Supabase NOT loaded</span><br>';
+            }
+
+            el.innerHTML = html;
+        }
+
+        // Test direct calls
+        function testDirectCall() {
+            const el = document.getElementById('directTest');
+            el.innerHTML = '<p>Testing direct method call...</p>';
+            
+            try {
+                // Create a minimal test object
+                const testObj = {
+                    showAlert: (msg, type) => {
+                        el.innerHTML += `<span class="ok">✓ Alert would show: "${msg}" (${type})</span><br>`;
+                    },
+                    connectWithUsername: function() {
+                        el.innerHTML += '<span class="ok">✓ connectWithUsername method callable!</span><br>';
+                        const username = 'ajay2266';
+                        this.showAlert(`Testing connection with username: ${username}`, 'info');
+                    }
+                };
+
+                // Call the method
+                testObj.connectWithUsername();
+            } catch (e) {
+                el.innerHTML += `<span class="error">✗ Error: ${e.message}</span>`;
+                console.error('Direct call error:', e);
+            }
+        }
+
+        function testDirectCameraCall() {
+            const el = document.getElementById('directTest');
+            el.innerHTML = '<p>Testing camera availability...</p>';
+
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                el.innerHTML += '<span class="ok">✓ Camera can be accessed</span><br>';
+                el.innerHTML += '<small>Note: May require user permission when actually clicking button</small><br>';
+            } else {
+                el.innerHTML += '<span class="error">✗ Camera API not available on this browser</span>';
+            }
+
+            if ('BarcodeDetector' in window) {
+                el.innerHTML += '<span class="ok">✓ BarcodeDetector available for automatic scanning</span>';
+            } else {
+                el.innerHTML += '<span class="warning">⚠ BarcodeDetector not available - manual capture only</span>';
+            }
+        }
+
+        // Run all checks on page load
+        window.addEventListener('load', () => {
+            checkSupabase();
+            checkScannerApp();
+            checkPosApp();
+            checkApis();
+        });
+
+        // Also run immediately in case load fires before scripts attach
+        setTimeout(() => {
+            checkSupabase();
+        }, 1000);
+    </script>
+</body>
+</html>

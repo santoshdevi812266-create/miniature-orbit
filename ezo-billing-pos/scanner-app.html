@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EZO Billing Scanner - Barcode</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .session-panel {
+            background: linear-gradient(135deg, var(--accent-color) 0%, var(--primary-color) 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .session-panel h4 {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+        }
+
+        .session-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .session-input-group input {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .session-input-group button {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .session-input-group button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .session-status {
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .status-connected {
+            background: rgba(39, 174, 96, 0.3);
+            color: #27ae60;
+        }
+
+        .status-disconnected {
+            background: rgba(231, 76, 60, 0.3);
+            color: #e74c3c;
+        }
+
+        .sync-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #e74c3c;
+            margin-right: 5px;
+        }
+
+        .sync-indicator.connected {
+            background: #27ae60;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>🔍 EZO Barcode Scanner</h1>
+        <div class="header-info">
+            <div class="date-time" id="dateTime"></div>
+            <a href="index.html" class="nav-links">← Home</a>
+            <a href="pos-enhanced.html" class="nav-links" style="background: rgba(39, 174, 96, 0.5);">🏪 Main POS</a>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout two-column" style="padding: 20px;">
+        <!-- Left Panel: Scanner & Product Info -->
+        <div class="panel">
+            <!-- Session Connection Panel -->
+            <div class="session-panel">
+                <h4>� Login to Main POS</h4>
+                <p style="margin: 0 0 10px 0; font-size: 11px; opacity: 0.9;">Enter username to sync with tablet</p>
+                <div class="session-input-group">
+                    <input type="text" id="usernameInput" placeholder="Username: ajay2266" style="font-size: 11px;">
+                    <button onclick="scannerApp.connectWithUsername()">Connect</button>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+                    <label style="font-size:12px; color:white; display:flex; gap:8px; align-items:center;"><input type="checkbox" id="scannerOnlyMode"> Scanner-only (auto-send)</label>
+                    <small style="color:rgba(255,255,255,0.9);">When enabled, scans are sent immediately to main POS</small>
+                </div>
+                <div class="session-status" id="sessionStatus">
+                    <span class="sync-indicator"></span>
+                    <span>Not connected</span>
+                </div>
+            </div>
+
+            <div class="panel-header">📱 Barcode Scanner</div>
+            
+            <!-- Scanner Input (Hidden - reads from barcode scanner) -->
+            <input type="text" id="barcodeInput" placeholder="Place scanner focus here and scan product barcode" autofocus style="width: 100%; padding: 10px; margin-bottom: 10px; background: #fff9e6; border: 2px solid var(--warning-color);">
+
+            <!-- Camera Capture Option -->
+            <div style="margin-top: 10px;">
+                <button class="btn btn-outline" id="cameraToggleBtn" onclick="scannerApp.toggleCameraScan()">📷 Use Camera to Scan</button>
+                <div id="cameraContainer" style="display:none; margin-top:10px;">
+                    <video id="cameraVideo" autoplay playsinline style="width:100%; border-radius:8px; border:1px solid #ddd;"></video>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button class="btn btn-sm" onclick="scannerApp.stopCameraScan()">Stop Camera</button>
+                        <button class="btn btn-sm" onclick="scannerApp.captureFrame()">Capture Frame</button>
+                        <small id="cameraHint" style="align-self:center;color:#666;">Using device camera to detect barcodes (if supported)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Last Scanned Product -->
+            <div id="scannedProductInfo" style="display: none; background: #e8f8f5; border: 2px solid var(--success-color); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                <h3 style="color: var(--dark-color); margin-bottom: 10px;">✓ Product Found</h3>
+                <p><strong>Name:</strong> <span id="productName"></span></p>
+                <p><strong>Barcode:</strong> <span id="productBarcode"></span></p>
+                <p><strong>Price:</strong> ₹<span id="productPrice"></span></p>
+                <p><strong>Unit:</strong> <span id="productUnit"></span></p>
+                <div class="form-group mt-20">
+                    <label>Quantity/Weight (<span id="unitLabel">pcs</span>):</label>
+                    <input type="number" id="scannedQuantity" placeholder="Enter quantity" min="0.1" step="0.1" value="1">
+                </div>
+                <button class="btn btn-success btn-block" onclick="scannerApp.addScannedProduct()">
+                    ✅ Add to Bill
+                </button>
+            </div>
+
+            <!-- Not Found Message -->
+            <div id="productNotFound" style="display: none; background: #fadbd8; border: 2px solid var(--danger-color); border-radius: 8px; padding: 15px;">
+                <p style="color: var(--danger-color); font-weight: bold;">❌ Product not found!</p>
+                <p style="color: #666; font-size: 12px;">The scanned barcode does not exist in the system.</p>
+            </div>
+
+            <!-- Add Product Modal Overlay -->
+            <div id="addProductOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; padding:20px; overflow-y:auto;"></div>
+
+            <!-- Add Product Panel (for not-found scans) -->
+            <div id="addProductPanel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; border-radius:12px; padding:20px; width:90%; max-width:400px; z-index:1001; box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="margin:0; color:#333;">➕ Add New Product</h3>
+                    <button onclick="scannerApp.closeAddProductModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#999;">✕</button>
+                </div>
+                
+                <p style="color:#666; font-size:13px; margin:0 0 15px 0;">Barcode not found. Enter product details below to add it:</p>
+                
+                <div style="display:grid; gap:10px;">
+                    <div>
+                        <label style="font-size:12px; color:#666; font-weight:600;">Barcode</label>
+                        <input type="text" id="prodBarcodeScan" readonly style="padding:10px; font-family:monospace; background:#f5f5f5; border:1px solid #ddd; border-radius:4px; width:100%; box-sizing:border-box;">
+                    </div>
+
+                    <div>
+                        <label style="font-size:12px; color:#666; font-weight:600;">Product Name *</label>
+                        <input type="text" id="prodNameScan" placeholder="Enter product name" style="padding:10px; border:1px solid #ddd; border-radius:4px; width:100%; box-sizing:border-box; font-size:14px;">
+                    </div>
+
+                    <div>
+                        <label style="font-size:12px; color:#666; font-weight:600;">Price (₹) *</label>
+                        <input type="number" id="prodPriceScan" placeholder="0.00" min="0" step="0.01" style="padding:10px; border:1px solid #ddd; border-radius:4px; width:100%; box-sizing:border-box; font-size:14px;">
+                    </div>
+
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label style="font-size:12px; color:#666; font-weight:600;">Unit</label>
+                            <select id="prodUnitScan" style="padding:10px; border:1px solid #ddd; border-radius:4px; width:100%; box-sizing:border-box; font-size:14px;">
+                                <option value="pcs">pcs</option>
+                                <option value="kg">kg</option>
+                                <option value="g">g</option>
+                                <option value="L">L</option>
+                                <option value="ml">ml</option>
+                            </select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:12px; color:#666; font-weight:600;">Category</label>
+                            <input type="text" id="prodCategoryScan" placeholder="Category" style="padding:10px; border:1px solid #ddd; border-radius:4px; width:100%; box-sizing:border-box; font-size:14px;">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-top:15px;">
+                        <button class="btn btn-success btn-block" onclick="scannerApp.addProductLocally()">✓ Add Product</button>
+                        <button class="btn btn-secondary btn-block" onclick="scannerApp.closeAddProductModal()">✕ Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Scans -->
+            <div style="margin-top: 20px;">
+                <h3 style="color: var(--dark-color); margin-bottom: 10px;">📋 Recent Scans</h3>
+                <div id="recentScans" style="background: #f9f9f9; border-radius: 8px; padding: 10px; max-height: 200px; overflow-y: auto;">
+                    <p style="text-align: center; color: #999;">No scans yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Current Bill -->
+        <div class="panel">
+            <div class="panel-header">📦 Scanned Items Bill</div>
+
+            <!-- Bill Display -->
+            <div class="bill-container">
+                <div class="bill-header">
+                    <h2>EZO SCANNER BILL</h2>
+                    <p id="billNumber">Bill #: <strong id="billId">---</strong></p>
+                    <p id="billTime" style="font-size: 10px; color: #666;">---</p>
+                </div>
+
+                <!-- Items Table -->
+                <div class="bill-items" id="billItemsList">
+                    <p style="text-align: center; color: #999;">No items scanned</p>
+                </div>
+
+                <!-- Summary -->
+                <div class="bill-summary">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">₹0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Tax (%):</span>
+                        <span>
+                            <input type="number" id="taxPercent" value="0" min="0" max="100" style="width: 60px; padding: 3px; border: 1px solid #ddd;">%
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Total -->
+                <div class="bill-total">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                        <span>TOTAL:</span>
+                        <span>₹<span id="billTotal">0.00</span></span>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="bill-footer">
+                    Shopping ke liye Dhanyavaad! 🙏
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-danger btn-block" onclick="scannerApp.clearBill()">
+                    🗑️ Clear
+                </button>
+                <button class="btn btn-success btn-block" onclick="scannerApp.openPaymentModal()">
+                    💰 Payment
+                </button>
+            </div>
+
+            <!-- Statistics -->
+            <div style="margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                <h4 style="margin-bottom: 10px; color: var(--dark-color);">📊 Statistics</h4>
+                <p><strong>Total Items:</strong> <span id="totalItems">0</span></p>
+                <p><strong>Unique Products:</strong> <span id="uniqueProducts">0</span></p>
+                <p><strong>Total Scans:</strong> <span id="totalScans">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal (same as POS app) -->
+    <div class="modal" id="paymentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                💳 Select Payment Method
+            </div>
+            <div class="modal-body">
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    <p style="color: #666; font-size: 12px;">Total Amount</p>
+                    <p style="font-size: 28px; font-weight: bold; color: var(--success-color);">₹<span id="modalTotal">0.00</span></p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+                    <button class="btn btn-primary btn-block" onclick="scannerApp.processPayment('Cash')">
+                        💵 Cash
+                    </button>
+                    <button class="btn btn-primary btn-block" onclick="scannerApp.processPayment('Card')">
+                        💳 Debit/Credit Card
+                    </button>
+                    <button class="btn btn-primary btn-block" onclick="scannerApp.processPayment('Online')">
+                        📱 Online Payment
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="scannerApp.closePaymentModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header" style="text-align: center; border: none;">
+                ✅ Payment Successful
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <div style="background: linear-gradient(135deg, var(--success-color) 0%, #27ae60 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 20px;">
+                    <h2 style="font-size: 32px; margin-bottom: 10px;">🎉 Successful!</h2>
+                    <p style="font-size: 18px; margin-bottom: 20px;">Payment Completed</p>
+                    <div id="qrCodeContainer" style="background: white; padding: 15px; border-radius: 8px;"></div>
+                </div>
+
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: left;">
+                    <p><strong>Bill Number:</strong> <span id="successBillNumber">---</span></p>
+                    <p><strong>Amount:</strong> ₹<span id="successAmount">0.00</span></p>
+                    <p><strong>Payment Method:</strong> <span id="successMethod">---</span></p>
+                    <p><strong>Time:</strong> <span id="successTime">---</span></p>
+                </div>
+
+                <div style="background: var(--success-color); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; font-size: 18px; font-weight: bold;">
+                    Shopping ke liye Dhanyavaad! 🙏
+                </div>
+
+                <button class="btn btn-success btn-block" onclick="scannerApp.completePayment()">
+                    ✅ Done - New Scan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="js/supabase-client.js"></script>
+    <script src="js/payment.js"></script>
+    <script src="js/qr-generator.js"></script>
+    <script src="js/barcode-scanner.js"></script>
+    <script src="js/product-manager.js"></script>
+    <script src="js/scanner-app.js"></script>
+</body>
+</html>
