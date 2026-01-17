@@ -758,6 +758,7 @@
                 <div style="background: var(--success-color); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; font-size: 18px; font-weight: bold;">Shopping ke liye Dhanyavaad! 🙏</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <button class="btn btn-info btn-block" id="smsButton" onclick="sendInvoiceViaSMS()" style="display: none;">📱 Send SMS Invoice</button>
+                    <button class="btn btn-warning btn-block" onclick="downloadBillPDF()">📥 Download PDF</button>
                     <button class="btn btn-success btn-block" onclick="completePayment()">✅ Done - New Bill</button>
                 </div>
             </div>
@@ -765,6 +766,8 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     <script src="js/supabase-client.js"></script>
     <script src="js/payment.js"></script>

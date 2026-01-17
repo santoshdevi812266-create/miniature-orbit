@@ -260,8 +260,174 @@ function showAlert(message, type = 'info') {
     setTimeout(() => alertDiv.remove(), 3000);
 }
 
-// Initialize dashboard
-let dashboard;
-document.addEventListener('DOMContentLoaded', () => {
+function exportReport() {
+    try {
+        const billHistory = JSON.parse(localStorage.getItem('billHistory') || '[]');
+        
+        if (billHistory.length === 0) {
+            alert('No sales data to export');
+            return;
+        }
+        
+        // Create CSV content
+        let csv = 'Bill Number,Date,Customer Name,Phone,Items Count,Subtotal,Discount %,Discount Amount,Total,Payment Method\n';
+        
+        billHistory.forEach(bill => {
+            const date = new Date(bill.date).toLocaleString('en-IN');
+            const customerName = bill.customerName || 'Walk-in';
+            const phone = bill.customerPhone || '-';
+            const itemsCount = bill.items ? bill.items.length : 1;
+            
+            csv += `"${bill.billNumber}","${date}","${customerName}","${phone}",${itemsCount},${bill.subtotal || 0},${bill.discountPercent || 0},${bill.discount || 0},${bill.total || 0},"${bill.paymentMethod || 'Unknown'}"\n`;
+        });
+        
+        // Create blob and download
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const fileName = `Sales_Report_${new Date().toISOString().split('T')[0]}.csv`;
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.style.visibility = 'hidden';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert(`✓ Report exported: ${fileName}`);
+    } catch (error) {
+        console.error('Error exporting report:', error);
+        alert('Error exporting report: ' + error.message);
+    }
+}
+
+async function downloadSalesReportPDF() {
+    try {
+        const { jsPDF } = window.jspdf;
+        const billHistory = JSON.parse(localStorage.getItem('billHistory') || '[]');
+        
+        if (billHistory.length === 0) {
+            alert('No sales data available');
+            return;
+        }
+        
+        const doc = new jsPDF();
+        let yPos = 20;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+        
+        // Header
+        doc.setFontSize(16);
+        doc.setTextColor(33, 33, 33);
+        doc.text('SALES REPORT', margin, yPos);
+        
+        yPos += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        const reportDate = new Date().toLocaleString('en-IN');
+        doc.text(`Generated: ${reportDate}`, margin, yPos);
+        
+        yPos += 10;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        // Summary stats
+        doc.setFontSize(10);
+        doc.setTextColor(33, 33, 33);
+        const totalBills = billHistory.length;
+        const totalAmount = billHistory.reduce((sum, bill) => sum + (bill.total || 0), 0);
+        const totalDiscount = billHistory.reduce((sum, bill) => sum + (bill.discount || 0), 0);
+        
+        doc.text(`Total Bills: ${totalBills}`, margin, yPos);
+        yPos += 6;
+        doc.text(`Total Sales: ₹${totalAmount.toFixed(2)}`, margin, yPos);
+        yPos += 6;
+        doc.text(`Total Discount: ₹${totalDiscount.toFixed(2)}`, margin, yPos);
+        
+        yPos += 10;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        // Table headers
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(9);
+        doc.text('Bill #', margin, yPos);
+        doc.text('Date', margin + 40, yPos);
+        doc.text('Customer', margin + 85, yPos);
+        doc.text('Total', pageWidth - margin - 25, yPos, { align: 'right' });
+        
+        yPos += 6;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 5;
+        
+        // Table data
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(50, 50, 50);
+        
+        billHistory.forEach((bill, index) => {
+            const billDate = new Date(bill.date).toLocaleDateString('en-IN');
+            const customer = (bill.customerName || 'Walk-in').substring(0, 20);
+            const amount = `₹${(bill.total || 0).toFixed(2)}`;
+            
+            doc.text(bill.billNumber, margin, yPos);
+            doc.text(billDate, margin + 40, yPos);
+            doc.text(customer, margin + 85, yPos);
+            doc.text(amount, pageWidth - margin - 25, yPos, { align: 'right' });
+            
+            yPos += 5;
+            
+            // New page if needed
+            if (yPos > pageHeight - 30) {
+                doc.addPage();
+                yPos = 20;
+                
+                // Repeat headers
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(9);
+                doc.setTextColor(33, 33, 33);
+                doc.text('Bill #', margin, yPos);
+                doc.text('Date', margin + 40, yPos);
+                doc.text('Customer', margin + 85, yPos);
+                doc.text('Total', pageWidth - margin - 25, yPos, { align: 'right' });
+                yPos += 6;
+                
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(50, 50, 50);
+            }
+        });
+        
+        // Footer
+        yPos = pageHeight - 20;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 6;
+        
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text('EZO Billing System', margin, yPos);
+        doc.text(`Page ${doc.internal.pages.length}`, pageWidth - margin - 20, yPos, { align: 'right' });
+        
+        const fileName = `Sales_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        
+        alert(`✓ Report downloaded: ${fileName}`);
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        alert('Error generating PDF: ' + error.message);
+    }
+}
+
+function printReport() {
+    // Open print dialog for current page
+    window.print();
+}
+
     dashboard = new AnalyticsDashboard();
 });

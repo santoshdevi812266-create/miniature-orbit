@@ -734,17 +734,70 @@ function completePayment() {
     const discount = (subtotal * discountPercent) / 100;
     const total = subtotal - discount;
     
-    billHistory.push({
+    // Save complete bill data
+    const completeBill = {
         billNumber: posApp.billNumber,
+        date: new Date().toISOString(),
+        customerName: document.getElementById('customerName').value || 'Walk-in Customer',
+        customerPhone: document.getElementById('customerPhone').value || null,
+        items: posApp.cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            unit: item.unit,
+            price: item.price,
+            total: item.price * item.quantity,
+            originalPrice: item.originalPrice || item.price
+        })),
+        subtotal: subtotal,
+        discountPercent: discountPercent,
+        discount: discount,
         total: total,
-        items: posApp.cart.length,
-        date: new Date().toISOString()
-    });
+        paymentMethod: currentBillData ? currentBillData.paymentMethod : 'Unknown'
+    };
     
+    billHistory.push(completeBill);
     localStorage.setItem('billHistory', JSON.stringify(billHistory));
     
+    // Also try to save to Supabase if available
+    if (window.supabase && window.supabase.auth) {
+        saveBillToSupabase(completeBill).catch(err => {
+            console.error('Warning: Could not save to Supabase:', err);
+            // Continue anyway - bill is saved in localStorage
+        });
+    }
+    
+    console.log('✓ Bill saved:', completeBill.billNumber, '- ₹' + total.toFixed(2));
     clearBill();
-    posApp.showAlert('Bill saved successfully!', 'success');
+    posApp.showAlert('💾 Bill saved successfully!', 'success');
+}
+
+async function saveBillToSupabase(billData) {
+    try {
+        if (!supabase) return;
+        
+        const { data, error } = await supabase
+            .from('sales')
+            .insert([{
+                bill_number: billData.billNumber,
+                customer_name: billData.customerName,
+                customer_phone: billData.customerPhone,
+                items_count: billData.items.length,
+                subtotal: billData.subtotal,
+                discount: billData.discount,
+                total: billData.total,
+                payment_method: billData.paymentMethod,
+                bill_details: billData,
+                created_at: billData.date
+            }]);
+        
+        if (error) {
+            console.error('Supabase error:', error);
+        } else {
+            console.log('✓ Saved to Supabase:', data);
+        }
+    } catch (err) {
+        console.error('Error saving to Supabase:', err);
+    }
 }
 
 function clearBill() {
@@ -955,4 +1008,166 @@ async function sendInvoiceViaSMS() {
     }
 }
 
-});
+async function downloadBillPDF() {
+    if (!currentBillData) {
+        posApp.showAlert('No bill data available', 'warning');
+        return;
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        let yPos = 20;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+        const maxWidth = pageWidth - (2 * margin);
+        
+        // Header
+        doc.setFontSize(20);
+        doc.setTextColor(33, 33, 33);
+        doc.text('EZO BILLING', margin, yPos);
+        
+        yPos += 10;
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text('Professional Point of Sale System', margin, yPos);
+        
+        yPos += 15;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        // Bill Details
+        doc.setFontSize(11);
+        doc.setTextColor(33, 33, 33);
+        doc.text(`Bill #: ${currentBillData.billId}`, margin, yPos);
+        yPos += 7;
+        
+        const billDate = new Date(currentBillData.date).toLocaleString('en-IN');
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Date: ${billDate}`, margin, yPos);
+        yPos += 7;
+        
+        if (currentBillData.customerName) {
+            doc.text(`Customer: ${currentBillData.customerName}`, margin, yPos);
+            yPos += 7;
+        }
+        if (currentBillData.customerPhone) {
+            doc.text(`Phone: ${currentBillData.customerPhone}`, margin, yPos);
+            yPos += 7;
+        }
+        
+        yPos += 5;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 8;
+        
+        // Items Header
+        doc.setFontSize(10);
+        doc.setTextColor(33, 33, 33);
+        doc.setFont(undefined, 'bold');
+        doc.text('Item', margin, yPos);
+        doc.text('Qty', pageWidth - margin - 50, yPos);
+        doc.text('Price', pageWidth - margin - 35, yPos);
+        doc.text('Total', pageWidth - margin - 15, yPos, { align: 'right' });
+        
+        yPos += 7;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 5;
+        
+        // Items
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(50, 50, 50);
+        
+        currentBillData.items.forEach(item => {
+            const itemName = item.productName;
+            const qty = `${item.quantity}${item.unit || 'pcs'}`;
+            const price = `₹${item.unitPrice.toFixed(2)}`;
+            const total = `₹${item.totalPrice.toFixed(2)}`;
+            
+            doc.text(itemName.substring(0, 25), margin, yPos);
+            doc.text(qty, pageWidth - margin - 50, yPos);
+            doc.text(price, pageWidth - margin - 35, yPos, { align: 'right' });
+            doc.text(total, pageWidth - margin - 15, yPos, { align: 'right' });
+            
+            yPos += 6;
+            
+            // Check if we need a new page
+            if (yPos > pageHeight - 40) {
+                doc.addPage();
+                yPos = 20;
+            }
+        });
+        
+        yPos += 3;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 7;
+        
+        // Summary
+        doc.setFontSize(10);
+        doc.setTextColor(33, 33, 33);
+        
+        const subtotalText = `Subtotal: ₹${currentBillData.subtotal.toFixed(2)}`;
+        doc.text(subtotalText, pageWidth - margin - 50, yPos, { align: 'right' });
+        yPos += 6;
+        
+        if (currentBillData.discount > 0) {
+            const discountText = `Discount (${currentBillData.discountPercent}%): -₹${currentBillData.discount.toFixed(2)}`;
+            doc.text(discountText, pageWidth - margin - 50, yPos, { align: 'right' });
+            yPos += 6;
+        }
+        
+        // Total
+        yPos += 2;
+        doc.setDrawColor(33, 33, 33);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 6;
+        
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        const totalText = `TOTAL: ₹${currentBillData.amount.toFixed(2)}`;
+        doc.text(totalText, pageWidth - margin - 50, yPos, { align: 'right' });
+        
+        yPos += 10;
+        doc.setDrawColor(33, 33, 33);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        
+        // Payment method and thank you
+        yPos += 8;
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Payment Method: ${currentBillData.paymentMethod}`, margin, yPos);
+        yPos += 8;
+        
+        doc.setFontSize(11);
+        doc.setTextColor(33, 33, 33);
+        doc.setFont(undefined, 'bold');
+        doc.text('शॉपिंग के लिए धन्यवाद!', margin, yPos);
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(10);
+        doc.text('(Thank you for shopping!)', margin, yPos + 6);
+        
+        // Download
+        const fileName = `Bill_${currentBillData.billId}_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        
+        posApp.showAlert(`📥 Bill downloaded: ${fileName}`, 'success');
+        console.log('✓ PDF downloaded:', fileName);
+        
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        posApp.showAlert('Error generating PDF: ' + error.message, 'danger');
+    }
+}
+
+// Initialize POS App
+let posApp;
+document.addEventListener('DOMContentLoaded', () => {
+    posApp = new EnhancedPOSApp();
