@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "ezo-billing-pos/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "ezo-billing-pos/server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
